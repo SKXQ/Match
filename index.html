@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Comfortaa', Arial, Helvetica, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-weight: bold;
+  }
+  .grid-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    gap: 4px;
+  }
+  .cell {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+    text-align: center;
+    line-height: 50px;
+    font-size: 18px;
+    user-select: none; /* Prevent text selection */
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, left 0.2s ease-in-out, top 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  }
+  .cell.active {
+    background-color: #f0f0f0;
+  }
+  .cell.highlighted {
+    background-color: #fae172;
+  }
+
+  /* Style for the bottom grid */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    gap: 4px;
+    pointer-events: none; /* Disable interaction with the bottom grid */
+  }
+  .bottom-cell {
+    background-color: #cccccc;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+    text-align: center;
+    line-height: 50px;
+    font-size: 18px;
+  }
+
+  #timer {
+    font-size: 24px;
+  }
+</style>
+<title>Match</title>
+</head>
+<body>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<center><h1><b>MATCH</h1></center></b>
+<br>
+<br>
+<div class="grid-container">
+  <div class="grid">
+    <div class="cell">1</div>
+    <div class="cell">2</div>
+    <div class="cell">3</div>
+    <div class="cell">4</div>
+    <div class="cell">5</div>
+    <div class="cell">6</div>
+    <div class="cell">7</div>
+    <div class="cell">8</div>
+    <div class="cell">9</div>
+  </div>
+  <div class="bottom-grid" id="bottomGrid">
+    <!-- Bottom grid cells will be generated dynamically -->
+  </div>
+</div>
+<br>
+<div id="score">Score: 0</div>
+<br>
+<div id="highScore">High Score: 0</div>
+<br>
+<div id="timer">20</div>
+<script>
+  const gridContainer = document.querySelector('.grid-container');
+  const cells = document.querySelectorAll('.cell');
+  let selectedCell = null;
+  let timer = 25;
+  let score = 0;
+  let highScore = localStorage.getItem('highScore') || 0; // Get the stored high score or default to 0
+  let gameOver = false;
+
+  // Function to shuffle an array
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  // Function to generate unique random numbers
+  function generateRandomNumbers(count) {
+    const numbers = Array.from({ length: count }, (_, i) => i + 1);
+    shuffleArray(numbers);
+    return numbers;
+  }
+
+  // Function to populate the bottom grid with random numbers
+  function populateBottomGrid() {
+    const bottomGrid = document.getElementById('bottomGrid');
+    const randomNumbers = generateRandomNumbers(cells.length);
+
+    bottomGrid.innerHTML = ''; // Clear existing cells
+
+    randomNumbers.forEach((number, index) => {
+      const bottomCell = document.createElement('div');
+      bottomCell.className = 'bottom-cell';
+      bottomCell.innerText = number;
+      bottomGrid.appendChild(bottomCell);
+    });
+  }
+
+  function updateScoreDisplay() {
+    document.getElementById('score').textContent = `Score: ${score}`;
+  }
+
+  function updateHighScoreDisplay() {
+    document.getElementById('highScore').textContent = `High Score: ${highScore}`;
+  }
+
+  function updateTimerDisplay() {
+    document.getElementById('timer').textContent = timer;
+  }
+
+  function decrementTimer() {
+    if (timer > 0) {
+      timer--;
+      updateTimerDisplay();
+    } else {
+      clearInterval(timerInterval);
+      document.getElementById('timer').textContent = "Game Over";
+      gameOver = true;
+      setTimeout(() => {
+        location.reload();
+      }, 3000);
+    }
+  }
+
+  function resetTimer() {
+    timer = 20;
+    updateTimerDisplay();
+  }
+
+  updateTimerDisplay();
+  const timerInterval = setInterval(decrementTimer, 1000);
+
+  populateBottomGrid();
+
+  cells.forEach(cell => {
+    cell.addEventListener('click', () => {
+      if (!gameOver) {
+        if (!selectedCell) {
+          selectedCell = cell;
+          cell.classList.add('highlighted');
+        } else {
+          if (cell !== selectedCell) {
+            swapCells(selectedCell, cell);
+          }
+          selectedCell.classList.remove('highlighted');
+          selectedCell = null;
+        }
+      }
+    });
+  });
+
+  function swapCells(cell1, cell2) {
+    const tempText = cell1.innerText;
+
+    // Fade out
+    cell1.style.opacity = 0;
+    cell2.style.opacity = 0;
+
+    setTimeout(() => {
+      cell1.innerText = cell2.innerText;
+      cell2.innerText = tempText;
+
+      // Fade in
+      cell1.style.opacity = 1;
+      cell2.style.opacity = 1;
+
+      // Check if the grids match
+      if (checkGridsMatch()) {
+        score += 9;
+        updateScoreDisplay();
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('highScore', highScore);
+          updateHighScoreDisplay();
+        }
+        resetTimer();
+        populateBottomGrid(); // Generate new random numbers for the bottom grid
+      }
+    }, 200); // Wait for fade-out transition to complete
+  }
+
+  function checkGridsMatch() {
+    const topGridNumbers = Array.from(cells).map(cell => parseInt(cell.innerText));
+    const bottomGridNumbers = Array.from(document.querySelectorAll('.bottom-cell')).map(cell => parseInt(cell.innerText));
+    return JSON.stringify(topGridNumbers) === JSON.stringify(bottomGridNumbers);
+  }
+
+  updateScoreDisplay();
+  updateHighScoreDisplay(); // Update the high score display on page load
+</script>
+</body>
+</html>
